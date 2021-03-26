@@ -21,5 +21,5 @@ setuptools.setup(
     author_email='danieliusvisockas@gmail.com',
     install_requires=install_requires,
     license='MIT',
-    keywords='gabor convolution pytorch',
+    keywords='leaf learnable audio frontend gabor convolution pytorch',
 )

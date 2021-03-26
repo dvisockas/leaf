@@ -59,8 +59,7 @@ class GaborConv1D(nn.Sequential):
       filter_order = torch.argsort(kernel[:, 0])
       kernel = torch.gather(kernel, filter_order, axis=0)
 
-    # TODO: Implement
-    filters = impulse_responses.gabor_filters(kernel, self._kernel_size)
+    filters = impulse_response.gabor_filters(kernel, self._kernel_size)
 
     real_filters = filters.real
     imag_filters = filters.imag
@@ -73,7 +72,6 @@ class GaborConv1D(nn.Sequential):
     outputs = F.conv1d(
         inputs, stacked_filters, stride=self._strides, padding=self._padding)
 
-    # TODO: Check if this is the same as TF's bias_add with data_format='NWC
     if self._use_bias: outputs += self._bias
 
     return outputs
