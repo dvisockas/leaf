@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from impulse_response import gabor_filters
 
@@ -27,7 +28,7 @@ class GaborConstraint:
     clipped_sigma = torch.clamp(kernel[:, 1], sigma_lower, sigma_upper)
     return torch.stack([clipped_mu, clipped_sigma], axis=1)
 
-class GaborConv1D(nn.Sequential):
+class GaborConv1D(nn.Module):
   """Implements a convolution with filters defined as complex Gabor wavelets.
   These filters are parametrized only by their center frequency and
   the full-width at half maximum of their frequency response.
