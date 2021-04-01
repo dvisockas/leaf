@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from impulse_response import gabor_filters
+from impulse_responses import gabor_filters
 
 class GaborConstraint:
   """Constraint mu and sigma, in radians.
@@ -60,7 +60,7 @@ class GaborConv1D(nn.Module):
       filter_order = torch.argsort(kernel[:, 0])
       kernel = torch.gather(kernel, filter_order, axis=0)
 
-    filters = impulse_response.gabor_filters(kernel, self._kernel_size)
+    filters = gabor_filters(kernel, self._kernel_size)
 
     real_filters = filters.real
     imag_filters = filters.imag

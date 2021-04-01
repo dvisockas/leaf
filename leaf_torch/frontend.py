@@ -1,5 +1,7 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+from leaf_torch import activations
 
 class Leaf(nn.Module):
   """PyTorch module that implements time-domain filterbanks.
@@ -17,7 +19,7 @@ class Leaf(nn.Module):
       learn_pooling: bool = True,
       learn_filters: bool = True,
       conv1d_cls=convolution.GaborConv1D,
-      activation=SquaredModulus(),
+      activation=activations.SquaredModulus(),
       pooling_cls=pooling.GaussianLowpass,
       n_filters: int = 40,
       sample_rate: int = 16000,
@@ -35,26 +37,26 @@ class Leaf(nn.Module):
       preemp_init: _Initializer = initializers.PreempInit(),
       complex_conv_init: _Initializer = initializers.GaborInit(
           sample_rate=16000, min_freq=60.0, max_freq=7800.0),
-      pooling_init: _Initializer = tf.keras.initializers.Constant(0.4),
-      regularizer_fn: Optional[tf.keras.regularizers.Regularizer] = None,
+      pooling_init: _Initializer = initializers.Constant(0.4),
+      regularizer_fn = None,
       mean_var_norm: bool = False,
-      spec_augment: bool = False,
-      name='leaf'):
-    super().__init__(name=name)
+      spec_augment: bool = False):
+    super(Leaf, self).__init__()
+
     window_size = int(sample_rate * window_len // 1000 + 1)
     window_stride = int(sample_rate * window_stride // 1000)
     if preemp:
-      self._preemp_conv = tf.keras.layers.Conv1D(
-          filters=1,
-          kernel_size=2,
-          strides=1,
-          padding='SAME',
-          use_bias=False,
-          input_shape=(None, None, 1),
-          kernel_initializer=preemp_init,
-          kernel_regularizer=regularizer_fn if learn_filters else None,
-          name='tfbanks_preemp',
-          trainable=learn_filters)
+      self._preemp_conv = nn.Conv1d(
+        in_channels=1,
+        out_channels=1,
+        kernel_size=2,
+        stride=1,
+        padding=0, # Check for SAME padding
+        bias=False,
+      )
+
+      for parameter in self._preemp_conv.parameters:
+        parameter.requires_grad = learn_filters
 
     self._complex_conv = conv1d_cls(
         filters=2 * n_filters,
@@ -78,16 +80,8 @@ class Leaf(nn.Module):
         kernel_regularizer=regularizer_fn if learn_pooling else None,
         trainable=learn_pooling)
 
-    self._instance_norm = None
     if mean_var_norm:
-      self._instance_norm = tfa.layers.InstanceNormalization(
-          axis=2,
-          epsilon=1e-6,
-          center=True,
-          scale=True,
-          beta_initializer='zeros',
-          gamma_initializer='ones',
-          name='tfbanks_instancenorm')
+      self._instance_norm = nn.InstanceNorm1d(n_filters, affine=True, eps=1e-6)
 
     self._compress_fn = compression_fn if compression_fn else tf.identity
     self._spec_augment_fn = postprocessing.SpecAugment(
@@ -95,7 +89,7 @@ class Leaf(nn.Module):
 
     self._preemp = preemp
 
-  def call(self, inputs: tf.Tensor, training: bool = False) -> tf.Tensor:
+  def forward(self, inputs: torch.Tensor, training: bool = False) -> torch.Tensor:
     """Computes the Leaf representation of a batch of waveforms.
 
     Args:
@@ -106,17 +100,18 @@ class Leaf(nn.Module):
     Returns:
       Leaf features of shape (batch_size, time_frames, freq_bins).
     """
+    # TODO: Rewrite to B, C, W
     # Inputs should be [B, W] or [B, W, C]
-    outputs = inputs[:, :, tf.newaxis] if inputs.shape.ndims < 3 else inputs
+    outputs = inputs.unsqueeze(2) if len(inputs.shape) < 3 else inputs
     if self._preemp:
       outputs = self._preemp_conv(outputs)
     outputs = self._complex_conv(outputs)
     outputs = self._activation(outputs)
     outputs = self._pooling(outputs)
-    outputs = tf.maximum(outputs, 1e-5)
+    outputs = torch.clamp(outputs, min=1e-5)
     outputs = self._compress_fn(outputs)
     if self._instance_norm is not None:
       outputs = self._instance_norm(outputs)
-    if training:
-      outputs = self._spec_augment_fn(outputs)
+    #if training:
+    #  outputs = self._spec_augment_fn(outputs)
     return outputs

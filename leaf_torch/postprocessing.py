@@ -25,7 +25,6 @@ class ExponentialMovingAverage(nn.Module):
     num_channels = input_shape[-1]
 
 
-    #
     self._weights = nn.Parameter(
       num_channels if self._per_channel else 1,
       requires_grad = self._trainable
@@ -103,9 +102,18 @@ class PCENLayer(nn.Module):
           per_channel=self._per_channel_smooth_coef,
           trainable=True)
     else:
+      # input_size – The number of expected features in the input x
+      # hidden_size – The number of features in the hidden state h
+      # num_layers – Number of recurrent layers. E.g., setting num_layers=2 would mean stacking two RNNs together to form a stacked RNN, with the second RNN taking in outputs of the first RNN and computing the final results. Default: 1
+      # nonlinearity – The non-linearity to use. Can be either 'tanh' or 'relu'. Default: 'tanh'
+      # bias – If False, then the layer does not use bias weights b_ih and b_hh. Default: True
+      # batch_first – If True, then the input and output tensors are provided as (batch, seq, feature). Default: False
+      # dropout – If non-zero, introduces a Dropout layer on the outputs of each RNN layer except the last layer, with dropout probability equal to dropout. Default: 0
+      # bidirectional – If True, becomes a bidirection
+
       self.ema = nn.RNN(
           units=num_channels,
-          activation=None,
+          nonlinearity=None,
           use_bias=False,
           kernel_initializer=tf.keras.initializers.Identity(
               gain=self._smooth_coef),
