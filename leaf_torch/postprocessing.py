@@ -24,17 +24,11 @@ class ExponentialMovingAverage(nn.Module):
   def build(self, input_shape):
     num_channels = input_shape[-1]
 
-
+    #TODO: add const initializer
     self._weights = nn.Parameter(
       num_channels if self._per_channel else 1,
       requires_grad = self._trainable
     )
-
-    self._weights = self.add_weight(
-        name='smooth',
-        shape=(num_channels,) if self._per_channel else (1,),
-        initializer=tf.keras.initializers.Constant(self._coeff_init),
-        trainable=self._trainable)
 
   def call(self, inputs: torch.Tensor, initial_state: torch.Tensor):
     """Inputs is of shape [batch, seq_length, num_filters]."""
@@ -125,7 +119,7 @@ class PCENLayer(nn.Module):
       for parameter in self.ema.parameters:
         parameter.requires_grad = False
 
-  def call(self, inputs):
+  def forward(self, inputs):
     one = torch.ones
     alpha = torch.min(self.alpha, torch.ones(1))
     root = torch.max(self.root, torch.ones(1))
@@ -134,3 +128,5 @@ class PCENLayer(nn.Module):
     output = ((inputs / (self._floor + ema_smoother)**alpha + self.delta)
               **one_over_root - self.delta**one_over_root)
     return output
+
+# %%

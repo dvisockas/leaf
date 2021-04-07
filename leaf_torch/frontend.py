@@ -67,7 +67,6 @@ class Leaf(nn.Module):
         input_shape=(None, None, 1),
         kernel_initializer=complex_conv_init,
         kernel_regularizer=regularizer_fn if learn_filters else None,
-        name='tfbanks_complex_conv',
         trainable=learn_filters)
 
     self._activation = activation
