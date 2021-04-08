@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from impulse_responses import gabor_filters
+from leaf_torch.impulse_responses import gabor_filters
 
 class GaborConstraint:
   """Constraint mu and sigma, in radians.
@@ -36,9 +36,9 @@ class GaborConv1D(nn.Module):
   """
 
   def __init__(self, filters, kernel_size, strides, padding, use_bias,
-               input_shape, kernel_initializer, kernel_regularizer, name,
+               input_shape, kernel_initializer, kernel_regularizer,
                trainable, sort_filters=False):
-    super().__init__(name=name)
+    super(GaborConv1D, self).__init__)
     self._filters = filters // 2
     self._kernel_size = kernel_size
     self._strides = strides
@@ -68,7 +68,7 @@ class GaborConv1D(nn.Module):
     stacked_filters = stacked_filters.reshape(
         [2 * self._filters, self._kernel_size])
 
-    stacked_filters = stacked_filters.transpose(1, 0)).unsqueeze(1)
+    stacked_filters = stacked_filters.transpose(1, 0).unsqueeze(1)
 
     outputs = F.conv1d(
         inputs, stacked_filters, stride=self._strides, padding=self._padding)

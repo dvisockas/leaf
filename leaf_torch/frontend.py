@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from leaf_torch import activations
+from leaf_torch import activations, convolution, pooling, postprocessing
 
 class Leaf(nn.Module):
   """PyTorch module that implements time-domain filterbanks.
@@ -25,7 +25,7 @@ class Leaf(nn.Module):
       sample_rate: int = 16000,
       window_len: float = 25.,
       window_stride: float = 10.,
-      compression_fn: _TensorCallable = postprocessing.PCENLayer(
+      compression_fn: _TensorCallable = postprocessing.PCEN(
           alpha=0.96,
           smooth_coef=0.04,
           delta=2.0,

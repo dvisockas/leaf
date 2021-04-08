@@ -21,7 +21,7 @@ class GaussianLowpass(nn.Module):
       trainable=False,
   ):
 
-    super().__init__(name='learnable_pooling')
+    super(GaussianLowpass, self).__init__()
     self.kernel_size = kernel_size
     self.strides = strides
     self.padding = padding

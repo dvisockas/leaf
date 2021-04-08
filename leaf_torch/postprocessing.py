@@ -1,6 +1,7 @@
+from typing import Union
+
 import torch
 import torch.nn as nn
-
 
 class ExponentialMovingAverage(nn.Module):
   """Computes of an exponential moving average of an sequential input."""
@@ -16,7 +17,7 @@ class ExponentialMovingAverage(nn.Module):
       per_channel: whether the smoothing should be different per channel.
       trainable: whether the smoothing should be trained or not.
     """
-    super().__init__(name='EMA')
+    super(ExponentialMovingAverage, self).__init__()
     self._coeff_init = coeff_init
     self._per_channel = per_channel
     self._trainable = trainable
@@ -38,7 +39,7 @@ class ExponentialMovingAverage(nn.Module):
                      initializer=initial_state)
     return tf.transpose(result, (1, 0, 2))
 
-class PCENLayer(nn.Module):
+class PCEN(nn.Module):
   """Per-Channel Energy Normalization.
 
   This applies a fixed or learnable normalization by an exponential moving
@@ -54,8 +55,7 @@ class PCENLayer(nn.Module):
                floor: float = 1e-6,
                trainable: bool = False,
                learn_smooth_coef: bool = False,
-               per_channel_smooth_coef: bool = False,
-               name='PCEN'):
+               per_channel_smooth_coef: bool = False):
     """PCEN constructor.
 
     Args:
@@ -71,7 +71,7 @@ class PCENLayer(nn.Module):
         coefficient
       name: str, name of the layer
     """
-    super().__init__(name=name)
+    super(PCEN, self).__init__()
     self._alpha_init = alpha
     self._delta_init = delta
     self._root_init = root
