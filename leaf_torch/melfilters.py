@@ -9,7 +9,6 @@ from leaf_torch import impulse_responses
 import torch
 import torch.nn.functional as F
 import math
-import numpy as np
 
 class Gabor:
   """This class creates gabor filters designed to match mel-filterbanks.
