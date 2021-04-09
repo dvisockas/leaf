@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from leaf_torch import activations, convolution, pooling, postprocessing
+from leaf_torch import activations, convolution, pooling, \
+  postprocessing, initializers
 
 class Leaf(nn.Module):
   """PyTorch module that implements time-domain filterbanks.
@@ -25,7 +26,7 @@ class Leaf(nn.Module):
       sample_rate: int = 16000,
       window_len: float = 25.,
       window_stride: float = 10.,
-      compression_fn: _TensorCallable = postprocessing.PCEN(
+      compression_fn = postprocessing.PCEN(
           alpha=0.96,
           smooth_coef=0.04,
           delta=2.0,
@@ -34,10 +35,10 @@ class Leaf(nn.Module):
           learn_smooth_coef=True,
           per_channel_smooth_coef=True),
       preemp: bool = False,
-      preemp_init: _Initializer = initializers.PreempInit(),
-      complex_conv_init: _Initializer = initializers.GaborInit(
+      preemp_init = initializers.PreempInit,
+      complex_conv_init = initializers.GaborInit(
           sample_rate=16000, min_freq=60.0, max_freq=7800.0),
-      pooling_init: _Initializer = initializers.Constant(0.4),
+      pooling_init = initializers.ConstInit(0.4),
       regularizer_fn = None,
       mean_var_norm: bool = False,
       spec_augment: bool = False):
@@ -45,13 +46,15 @@ class Leaf(nn.Module):
 
     window_size = int(sample_rate * window_len // 1000 + 1)
     window_stride = int(sample_rate * window_stride // 1000)
+
+    #TODO: All tf 'SAME' paddings are set to 0, check if it's ok
     if preemp:
       self._preemp_conv = nn.Conv1d(
         in_channels=1,
         out_channels=1,
         kernel_size=2,
         stride=1,
-        padding=0, # Check for SAME padding
+        padding=0,
         bias=False,
       )
 
@@ -62,9 +65,9 @@ class Leaf(nn.Module):
         filters=2 * n_filters,
         kernel_size=window_size,
         strides=1,
-        padding='SAME',
+        padding=0,
         use_bias=False,
-        input_shape=(None, None, 1),
+        #input_shape=(None, None, 1),
         kernel_initializer=complex_conv_init,
         kernel_regularizer=regularizer_fn if learn_filters else None,
         trainable=learn_filters)
@@ -73,7 +76,7 @@ class Leaf(nn.Module):
     self._pooling = pooling_cls(
         kernel_size=window_size,
         strides=window_stride,
-        padding='SAME',
+        padding=0,
         use_bias=False,
         kernel_initializer=pooling_init,
         kernel_regularizer=regularizer_fn if learn_pooling else None,
@@ -82,9 +85,8 @@ class Leaf(nn.Module):
     if mean_var_norm:
       self._instance_norm = nn.InstanceNorm1d(n_filters, affine=True, eps=1e-6)
 
-    self._compress_fn = compression_fn if compression_fn else tf.identity
-    self._spec_augment_fn = postprocessing.SpecAugment(
-    ) if spec_augment else tf.identity
+    self._compress_fn = compression_fn if compression_fn else torch.clone
+    self._spec_augment_fn = postprocessing.SpecAugment() if spec_augment else torch.clone
 
     self._preemp = preemp
 
@@ -101,7 +103,7 @@ class Leaf(nn.Module):
     """
     # TODO: Rewrite to B, C, W
     # Inputs should be [B, W] or [B, W, C]
-    outputs = inputs.unsqueeze(2) if len(inputs.shape) < 3 else inputs
+    outputs = inputs.unsqueeze(1) if len(inputs.shape) < 3 else inputs
     if self._preemp:
       outputs = self._preemp_conv(outputs)
     outputs = self._complex_conv(outputs)

@@ -2,13 +2,16 @@
 """Initializer classes for each layer of the learnable frontend."""
 
 import torch
-from leaf_torch import melfilters
+from leaf_torch import melfilters, initializers
 
 class ConstInit:
-  def __init__(tensor: torch.Tensor, const: torch.float32) -> torch.Tensor:
-  return tensor.fill_(const)
+  def __init__(self, const: torch.float32):
+    self.const = const
 
-def PreempInit(tensor: torch.Tensor, alpha: float=0.97) -> Tensor:
+  def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
+    return tensor.fill_(self.const)
+
+def PreempInit(tensor: torch.Tensor, alpha: float=0.97) -> torch.Tensor:
     """Pytorch initializer for the pre-emphasis.
 
     Returns a Tensor to initialize the pre-emphasis layer of a Leaf instance.
@@ -42,7 +45,7 @@ class GaborInit:
     kwargs.pop('n_filters', None)
     self._kwargs = kwargs
 
-  def __call__(self, shape, dtype=None)
+  def __call__(self, tensor, dtype=None, **kwargs):
     shape = tensor.shape
 
     n_filters = shape[0] if len(shape) == 2 else shape[-1] // 2
@@ -51,11 +54,17 @@ class GaborInit:
         n_filters=n_filters, window_len=window_len, **kwargs)
     if len(shape) == 2:
         with torch.no_grad():
-            tensor = gabor_filters.gabor_params_from_mels
-            return tensor
+            return gabor_filters.gabor_params_from_mels
     else:
-        # TODO: FINISH
-        pass
+      raise NotImplementedError
+      even_indices = tf.range(shape[2], delta=2)
+      odd_indices = tf.range(start=1, limit=shape[2], delta=2)
+      filters = gabor_filters.gabor_filters
+      filters_real_and_imag = tf.dynamic_stitch(
+          [even_indices, odd_indices],
+          [tf.math.real(filters), tf.math.imag(filters)])
+      return tf.transpose(filters_real_and_imag[:, tf.newaxis, :], [2, 1, 0])
+
 
 
 

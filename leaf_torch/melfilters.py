@@ -9,8 +9,8 @@ from leaf_torch import impulse_responses
 import torch
 import torch.nn.functional as F
 import math
+import numpy as np
 
-@gin.configurable
 class Gabor:
   """This class creates gabor filters designed to match mel-filterbanks.
 
@@ -49,6 +49,7 @@ class Gabor:
     two = torch.tensor(2.)
     coeff = torch.sqrt(two * torch.log(two)) * self.n_fft
     sqrt_filters = torch.sqrt(self.mel_filters)
+    # sqrt_filters = torch.sqrt(torch.tensor(self.mel_filters))
     center_frequencies = torch.argmax(sqrt_filters, dim=1).type(torch.float)
     peaks, _ = torch.max(sqrt_filters, dim=1, keepdim=True)
     half_magnitudes = peaks / 2.
@@ -147,6 +148,7 @@ def linear_to_mel_weight_matrix(num_mel_bins=20,
   # HTK excludes the spectrogram DC bin.
   bands_to_zero = 1
   nyquist_hertz = sample_rate / 2.0
+
   linear_frequencies = torch.linspace(
       0.0, nyquist_hertz, num_spectrogram_bins)[bands_to_zero:].unsqueeze(1)
   # spectrogram_bins_mel = hertz_to_mel(linear_frequencies)
@@ -157,7 +159,7 @@ def linear_to_mel_weight_matrix(num_mel_bins=20,
   # num_mel_bins + 2 pieces.
   band_edges_mel = torch.linspace(
       hertz_to_mel(lower_edge_hertz), hertz_to_mel(upper_edge_hertz),
-      num_mel_bins + 2)
+      num_mel_bins + 2).type(torch.float64)
 
   lower_edge_mel = band_edges_mel[0:-2]
   center_mel = band_edges_mel[1:-1]
@@ -193,8 +195,6 @@ def linear_to_mel_weight_matrix(num_mel_bins=20,
 
   # Re-add the zeroed lower bins we sliced out above.
   # [freq, mel]
-  # TODO: Check if this is the same as
-  # np.pad(mel_weights_matrix, [[bands_to_zero, 0], [0, 0]],
-  #                           'constant')
-  mel_weights_matrix = F.pad(mel_weights_matrix, (bands_to_zero, 0, 0, 0))
+
+  mel_weights_matrix = F.pad(mel_weights_matrix, (0, 0, 0, bands_to_zero))
   return mel_weights_matrix

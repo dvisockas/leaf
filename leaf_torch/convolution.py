@@ -1,3 +1,4 @@
+import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -36,9 +37,9 @@ class GaborConv1D(nn.Module):
   """
 
   def __init__(self, filters, kernel_size, strides, padding, use_bias,
-               input_shape, kernel_initializer, kernel_regularizer,
+               kernel_initializer, kernel_regularizer,
                trainable, sort_filters=False):
-    super(GaborConv1D, self).__init__)
+    super(GaborConv1D, self).__init__()
     self._filters = filters // 2
     self._kernel_size = kernel_size
     self._strides = strides
@@ -47,24 +48,22 @@ class GaborConv1D(nn.Module):
     self._sort_filters = sort_filters
 
     # TODO: Add regularization
-    self._kernel = nn.Parameter(self._filters, 2)
+    initialized_kernel = kernel_initializer(torch.zeros(self._filters, 2))
+    self._kernel = nn.Parameter(initialized_kernel)
     self._kernel.constraint = GaborConstraint(self._kernel_size)
-    nn.init.xavier_uniform_(self._kernel)
 
     if self._use_bias:
-      self._bias = nn.Parameter(self._filters * 2)
+      self._bias = nn.Parameter(torch.zeros(self._filters * 2), requires_grad=trainable)
 
   def forward(self, inputs):
     kernel = self._kernel.constraint(self._kernel)
     if self._sort_filters:
       filter_order = torch.argsort(kernel[:, 0])
-      kernel = torch.gather(kernel, filter_order, axis=0)
+      kernel = torch.gather(kernel, filter_order, dim=0, index=filter_order)
 
     filters = gabor_filters(kernel, self._kernel_size)
 
-    real_filters = filters.real
-    imag_filters = filters.imag
-    stacked_filters = torch.stack([real_filters, img_filters], axis=1)
+    stacked_filters = torch.stack([filters.real, filters.imag], dim=1)
     stacked_filters = stacked_filters.reshape(
         [2 * self._filters, self._kernel_size])
 
