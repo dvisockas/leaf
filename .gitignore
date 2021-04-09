@@ -1,5 +1,5 @@
-.ipynb_checkpoints/
-.vscode/
-.leaf_torch/egg-info
-.leaf_torch/__pycache__/
+.ipynb_checkpoints
+.vscode
+.leaf_torch.egg-info
+.leaf_torch/__pycache__
 
